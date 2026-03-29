@@ -1,0 +1,44 @@
+name: Daily ETL
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # Every day at 02:00 UTC
+    # Twice-daily option — uncomment below and remove the line above:
+    # - cron: "0 2,14 * * *"
+  workflow_dispatch:        # Allow manual trigger from GitHub UI
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r etl/requirements.txt
+
+      - name: Run ETL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python etl/scraper.py
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: scrape          # Run cleanup after scrape succeeds
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install psycopg2-binary
+
+      - name: Run cleanup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python etl/cleanup.py
