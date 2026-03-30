@@ -199,12 +199,13 @@ def trending_skills(
     }
 
 
-# ── Helper ────────────────────────────────────────────────────────────────────
+# ── Helper ───────
 
 def _try_send_welcome_email(email: str, name: str, api_key: str):
     smtp_host = os.environ.get("SMTP_HOST")
     if not smtp_host:
-        return
+        return  # Email not configured — skip safely
+
     try:
         msg = EmailMessage()
         msg["Subject"] = "Your API key"
@@ -214,4 +215,11 @@ def _try_send_welcome_email(email: str, name: str, api_key: str):
 
         with smtplib.SMTP(smtp_host, int(os.environ.get("SMTP_PORT", 587))) as s:
             s.starttls()
-            s.login(os.environ["SMTP_USER"], os.environ["SMTP
+            s.login(
+                os.environ.get("SMTP_USER"),
+                os.environ.get("SMTP_PASS")
+            )
+            s.send_message(msg)
+
+    except Exception as e:
+        print(f"Email send failed: {e}")
